@@ -11,7 +11,7 @@ from .adjectives import decline_adjective_with_info
 app = FastAPI(
     title="Russian Verb Conjugation API",
     description="Free API for conjugating Russian verbs in all tenses (present, past, future)",
-    version="1.5.0",
+    version="1.5.1",
 )
 
 app.add_middleware(
@@ -46,7 +46,7 @@ LANG_CODES = {
 def root():
     return {
         "name": "Russian Verb Conjugation API",
-        "version": "1.5.0",
+        "version": "1.5.1",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
         "base_url": "https://ru-api-free.onrender.com",
         "docs": "/docs",
