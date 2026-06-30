@@ -7,11 +7,12 @@ from .dictionary import translate
 from .pluraliser import pluralise_with_info
 from .declension import decline_with_info
 from .adjectives import decline_adjective_with_info
+from .aspect_pairs import get_aspect_pair
 
 app = FastAPI(
     title="Russian Verb Conjugation API",
     description="Free API for conjugating Russian verbs in all tenses (present, past, future)",
-    version="1.5.1",
+    version="1.6.0",
 )
 
 app.add_middleware(
@@ -46,7 +47,7 @@ LANG_CODES = {
 def root():
     return {
         "name": "Russian Verb Conjugation API",
-        "version": "1.5.1",
+        "version": "1.6.0",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
         "base_url": "https://ru-api-free.onrender.com",
         "docs": "/docs",
@@ -144,6 +145,21 @@ def root():
                     "german": "/decline-adjective?text=neu&source=de",
                 },
             },
+            "aspect_pair": {
+                "url": "/aspect-pair?text={verb}&source={lang}",
+                "method": "GET",
+                "description": "Get the aspect pair for a Russian verb (imperfective ↔ perfective). Shows conjugated forms of both aspects side by side.",
+                "params": {
+                    "text": "Verb to find aspect pair for (required)",
+                    "source": "Source language code (default: auto)",
+                },
+                "example_requests": {
+                    "english": "/aspect-pair?text=speak",
+                    "russian_imp": "/aspect-pair?text=читать",
+                    "russian_perf": "/aspect-pair?text=сказать",
+                    "german": "/aspect-pair?text=sprechen&source=de",
+                },
+            },
         },
         "code_examples": {
             "javascript_fetch": """// Use on your website
@@ -179,7 +195,11 @@ curl "https://ru-api-free.onrender.com/pluralise?text=house"
 curl "https://ru-api-free.onrender.com/decline?text=house"
 
 # Decline adjectives (all genders and cases)
-curl "https://ru-api-free.onrender.com/decline-adjective?text=new\"""",
+curl "https://ru-api-free.onrender.com/decline-adjective?text=new"
+
+# Get aspect pair (imperfective/perfective)
+curl "https://ru-api-free.onrender.com/aspect-pair?text=speak"
+curl "https://ru-api-free.onrender.com/aspect-pair?text=читать\"""",
             "python": """import requests
 
 API = "https://ru-api-free.onrender.com"
@@ -331,6 +351,56 @@ def decline_adjective_endpoint(
     result["translated"] = translated
     if result.get("error"):
         result["note"] = result["message"]
+    return result
+
+
+@app.get("/aspect-pair")
+def aspect_pair_endpoint(
+    text: str = Query(None, description="Verb to get aspect pair (e.g., speak, читать, сказать)"),
+    english: str = Query(None, description="[deprecated] Use 'text' instead"),
+    source: str = Query("auto", description="Source language code (e.g., en, de, fr). Default: auto-detect"),
+):
+    inp = text or english
+    if not inp:
+        raise HTTPException(status_code=400, detail="Provide 'text' parameter")
+    inp = inp.strip()
+
+    is_cyrillic = bool(__import__("re").search(r"[а-яё]", inp))
+    if is_cyrillic:
+        russian_verb = inp
+    else:
+        translated = translate(inp, source=source, target="ru")
+        if not translated:
+            raise HTTPException(status_code=502, detail="Translation service unavailable")
+        russian_verb = translated
+
+    pair = get_aspect_pair(russian_verb)
+    if not pair:
+        raise HTTPException(status_code=404, detail=f"No aspect pair found for '{russian_verb}'")
+
+    counterpart = pair.get("perfective") or pair.get("imperfective")
+    counterpart_conj, _ = conjugate(counterpart) if counterpart in VERBS else (None, 404)
+
+    if russian_verb in VERBS:
+        main, _ = conjugate(russian_verb)
+    else:
+        main, _ = conjugate(russian_verb)
+
+    result = {
+        "verb": russian_verb,
+        "aspect": main.get("aspect", "unknown"),
+        "pair_type": pair.get("type", "unknown"),
+        "counterpart": counterpart,
+        "counterpart_aspect": counterpart_conj.get("aspect") if counterpart_conj else "unknown",
+        "main_verb": main,
+        "counterpart_verb": counterpart_conj,
+    }
+    if pair.get("note"):
+        result["note"] = pair["note"]
+    if not is_cyrillic:
+        result["original"] = inp
+        result["translated"] = russian_verb
+        result["source_lang"] = source
     return result
 
 

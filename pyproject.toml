@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ru-api-free"
-version = "1.5.1"
+version = "1.6.0"
 description = "Free API for conjugating Russian verbs in all tenses (present, past, future)"
 readme = "README.md"
 license = "MIT"

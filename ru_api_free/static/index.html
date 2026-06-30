@@ -73,6 +73,7 @@ td:last-child { font-weight: 500; }
     <button class="tab" data-mode="pluralise" onclick="setMode('pluralise')">Pluralise</button>
     <button class="tab" data-mode="decline" onclick="setMode('decline')">Decline</button>
     <button class="tab" data-mode="adjective" onclick="setMode('adjective')">Decline Adj</button>
+    <button class="tab" data-mode="aspect" onclick="setMode('aspect')">Aspect Pair</button>
   </div>
   <div class="search-box">
     <select id="langSelect" style="padding:0.75rem 0.5rem;border:1px solid #334155;border-radius:8px;font-size:0.85rem;background:#1e293b;color:#e2e8f0;outline:none;cursor:pointer">
@@ -130,9 +131,12 @@ function setMode(mode) {
   } else if (mode === 'decline') {
     input.placeholder = 'e.g. house, Haus, maison, дом, книга...';
     hintArea.innerHTML = 'Try: <span>house</span> <span>book</span> <span>Haus</span> <span>мать</span> <span>время</span> <span>окно</span>';
-  } else {
+  } else if (mode === 'adjective') {
     input.placeholder = 'e.g. new, neu, nouveau, новый, синий...';
     hintArea.innerHTML = 'Try: <span>new</span> <span>old</span> <span>big</span> <span>good</span> <span>новый</span> <span>хороший</span>';
+  } else {
+    input.placeholder = 'e.g. speak, read, write, делать, сказать...';
+    hintArea.innerHTML = 'Try: <span>speak</span> <span>read</span> <span>do</span> <span>buy</span> <span>читать</span> <span>сказать</span>';
   }
 }
 
@@ -173,11 +177,16 @@ async function searchVerb() {
       if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
       data = await res.json();
       renderDecline(data);
-    } else {
+    } else if (MODE === 'adjective') {
       const res = await fetch(`${API_BASE}/decline-adjective?text=${encodeURIComponent(query)}&source=${src()}`);
       if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
       data = await res.json();
       renderAdjective(data);
+    } else {
+      const res = await fetch(`${API_BASE}/aspect-pair?text=${encodeURIComponent(query)}&source=${src()}`);
+      if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
+      data = await res.json();
+      renderAspectPair(data);
     }
   } catch (err) {
     if (err) showError(err.msg || 'An error occurred');
@@ -340,7 +349,8 @@ function renderConjugate(data) {
   <pre style="background:#1e293b;padding:0.75rem;border-radius:8px;margin-top:0.5rem;text-align:left;overflow-x:auto;font-size:0.75rem;color:#e2e8f0">curl "https://ru-api-free.onrender.com/translate?text=speak"
 curl "https://ru-api-free.onrender.com/pluralise?text=house"
 curl "https://ru-api-free.onrender.com/decline?text=house"
-curl "https://ru-api-free.onrender.com/decline-adjective?text=new"</pre>
+curl "https://ru-api-free.onrender.com/decline-adjective?text=new"
+curl "https://ru-api-free.onrender.com/aspect-pair?text=speak"</pre>
 </div>
 
 <script>
@@ -443,6 +453,93 @@ function renderDecline(data) {
     html += '</table></div>';
   }
 
+  document.getElementById('tensesContainer').innerHTML = html;
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderAspectPair(data) {
+  resultCard.style.display = 'block';
+  document.getElementById('noteMsg').style.display = 'none';
+
+  const name = data.translated || data.verb || data.original || '';
+  const srcLabel = LANG_NAMES[data.source_lang] || data.source_lang || '';
+  const headerParts = [];
+  if (data.original && data.original !== data.verb) {
+    headerParts.push(`<span style="color:#94a3b8;font-size:0.85rem">${data.original}</span>`);
+  }
+  if (srcLabel && data.source_lang) {
+    headerParts.push(`<span style="color:#64748b;font-size:0.75rem">${srcLabel}</span>`);
+  }
+
+  const pair = data.counterpart || '';
+  const pairAspect = data.counterpart_aspect || '';
+  const mainVerb = data.main_verb || {};
+  const pairVerb = data.counterpart_verb || {};
+
+  const labels = { nominative: 'Nom', genitive: 'Gen', dative: 'Dat', accusative: 'Acc', instrumental: 'Ins', prepositional: 'Pre' };
+  const persons = ['я', 'ты', 'он/она/оно', 'мы', 'вы', 'они'];
+  const pastGenders = ['мужской', 'женский', 'средний', 'множественное'];
+
+  document.getElementById('verbTitle').innerHTML = `
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <span style="font-size:1.4rem">${data.verb}</span>
+      <span style="color:#94a3b8;font-size:0.9rem">↔</span>
+      <span style="font-size:1.4rem">${pair}</span>
+      ${headerParts.length ? '<div style="width:100%">' + headerParts.join(' ') + '</div>' : ''}
+    </div>
+  `;
+
+  const meta = document.getElementById('verbMeta');
+  meta.innerHTML = `
+    <span class="badge" style="background:#1e3a5f;color:#93c5fd">${data.aspect || '?'}</span>
+    <span style="color:#64748b;font-size:0.8rem;margin:0 0.25rem">↔</span>
+    <span class="badge" style="background:#3b1e5f;color:#c4a5fd">${pairAspect || '?'}</span>
+    <span class="badge" style="background:#1e5f3b;color:#a5fdc4">${data.pair_type || ''}</span>
+    ${data.note ? `<span class="badge" style="background:#5f3b1e;color:#fdc4a5">${data.note}</span>` : ''}
+  `;
+
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">';
+
+  for (const [side, v, label] of [['left', mainVerb, data.verb], ['right', pairVerb, pair]]) {
+    const tenses = v.tenses || {};
+    const hasPresent = tenses.present && tenses.present['я'];
+    const hasFuture = tenses.future && tenses.future['я'];
+    const hasPast = tenses.past && tenses.past['мужской'];
+
+    html += `<div><div style="font-weight:600;margin-bottom:0.5rem;font-size:0.95rem">${label}</div>`;
+
+    if (hasPresent) {
+      html += '<div class="tense-block"><h3>Present</h3><table>';
+      for (const p of persons) {
+        html += `<tr><td>${p}</td><td>${tenses.present[p] || '—'}</td></tr>`;
+      }
+      html += '</table></div>';
+    }
+
+    if (hasFuture) {
+      html += '<div class="tense-block" style="margin-top:0.75rem"><h3>Future</h3><table>';
+      for (const p of persons) {
+        html += `<tr><td>${p}</td><td>${tenses.future[p] || '—'}</td></tr>`;
+      }
+      html += '</table></div>';
+    }
+
+    if (!hasPresent && !hasFuture) {
+      html += '<div style="color:#64748b;font-style:italic;font-size:0.85rem">No present/future tense</div>';
+    }
+
+    if (hasPast) {
+      html += '<div class="tense-block" style="margin-top:0.75rem"><h3>Past</h3><table>';
+      for (const g of pastGenders) {
+        html += `<tr><td>${g}</td><td>${tenses.past[g] || '—'}</td></tr>`;
+      }
+      html += '</table></div>';
+    }
+
+    html += '</div>';
+  }
+
+  html += '</div>';
   document.getElementById('tensesContainer').innerHTML = html;
   resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
