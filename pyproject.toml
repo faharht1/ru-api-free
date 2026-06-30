@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ru-api-free"
+version = "1.1.0"
+description = "Free API for conjugating Russian verbs in all tenses (present, past, future)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    {name = "Radoslaw", email = "faharht@email.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "aiofiles",
+    "deep_translator",
+]
+
+[project.urls]
+Homepage = "https://github.com/faharht/ru-api-free"
+Source = "https://github.com/faharht/ru-api-free"
+
+[project.scripts]
+ru-api-free = "ru_api_free.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["ru_api_free*"]
+
+[tool.setuptools.package-data]
+ru_api_free = ["static/*"]
