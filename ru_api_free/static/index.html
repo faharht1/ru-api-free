@@ -14,6 +14,8 @@ h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; background: li
 input { flex: 1; padding: 0.75rem 1rem; border: 1px solid #334155; border-radius: 8px; font-size: 1rem; background: #1e293b; color: #e2e8f0; outline: none; transition: border 0.2s; }
 input:focus { border-color: #60a5fa; }
 input::placeholder { color: #64748b; }
+select { padding: 0.75rem 0.5rem; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; background: #1e293b; color: #e2e8f0; outline: none; cursor: pointer; }
+select:focus { border-color: #60a5fa; }
 button { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #60a5fa, #a78bfa); border: none; border-radius: 8px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
 button:hover { opacity: 0.9; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -72,6 +74,18 @@ td:last-child { font-weight: 500; }
     <button class="tab" data-mode="decline" onclick="setMode('decline')">Decline</button>
   </div>
   <div class="search-box">
+    <select id="langSelect" style="padding:0.75rem 0.5rem;border:1px solid #334155;border-radius:8px;font-size:0.85rem;background:#1e293b;color:#e2e8f0;outline:none;cursor:pointer">
+      <option value="auto">Auto</option>
+      <option value="en">EN</option>
+      <option value="ru">RU</option>
+      <option value="de">DE</option>
+      <option value="fr">FR</option>
+      <option value="es">ES</option>
+      <option value="it">IT</option>
+      <option value="pl">PL</option>
+      <option value="uk">UK</option>
+      <option value="be">BE</option>
+    </select>
     <input type="text" id="verbInput" placeholder="e.g. read, lesen, lire, читать, говорить..." autofocus>
     <button id="searchBtn">Go</button>
   </div>
@@ -98,6 +112,8 @@ const resultCard = document.getElementById('resultCard');
 const hintArea = document.getElementById('hintArea');
 
 const API_BASE = window.location.origin;
+const langSelect = document.getElementById('langSelect');
+function src() { return langSelect.value; }
 
 function setMode(mode) {
   MODE = mode;
@@ -138,18 +154,18 @@ async function searchVerb() {
         if (!res.ok) throw { status: res.status, msg: (await res.json()).detail || 'Verb not found' };
         data = await res.json();
       } else {
-        const res = await fetch(`${API_BASE}/translate?text=${encodeURIComponent(query)}&source=auto&target=ru`);
+        const res = await fetch(`${API_BASE}/translate?text=${encodeURIComponent(query)}&source=${src()}&target=ru`);
         if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Translation failed' }; }
         data = await res.json();
       }
       renderConjugate(data);
     } else if (MODE === 'pluralise') {
-      const res = await fetch(`${API_BASE}/pluralise?text=${encodeURIComponent(query)}&source=auto`);
+      const res = await fetch(`${API_BASE}/pluralise?text=${encodeURIComponent(query)}&source=${src()}`);
       if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
       data = await res.json();
       renderPlural(data);
     } else {
-      const res = await fetch(`${API_BASE}/decline?text=${encodeURIComponent(query)}&source=auto`);
+      const res = await fetch(`${API_BASE}/decline?text=${encodeURIComponent(query)}&source=${src()}`);
       if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
       data = await res.json();
       renderDecline(data);

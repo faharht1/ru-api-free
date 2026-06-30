@@ -177,6 +177,30 @@ _VEL = set("гкх")
 _VOW = set("аеёиоуыэюя")
 
 
+def _is_likely_plural(word):
+    w = word.lower().strip()
+    if w in IRREGULAR_DECLENSION:
+        return False
+    if w.endswith("ы") and len(w) > 2:
+        return True
+    if w.endswith("и") and len(w) > 2:
+        from .pluraliser import IRREGULAR_PLURALS
+        if w in IRREGULAR_PLURALS.values():
+            return True
+        if w.endswith("ии"):
+            return False
+        return True
+    if w.endswith("а") and len(w) > 2:
+        from .pluraliser import STRESSED_A_MASC as stressed
+        stem = w[:-1]
+        if stem in stressed or stem in ("стол", "глаз", "бок", "рог", "мех"):
+            return True
+        return False
+    if w.endswith("я") and len(w) > 2:
+        return True
+    return False
+
+
 def decline(word):
     w = word.strip()
     if w.lower() in IRREGULAR_DECLENSION:
@@ -418,6 +442,9 @@ def _gen_pl_fem_ya(w):
 
 def decline_with_info(word):
     w = word.strip()
+    if _is_likely_plural(w):
+        return {"error": True, "message": f"'{w}' appears to be a plural noun. Enter the singular form."}
+
     gender = _get_gender(w)
     gender_label = {"m": "masculine", "f": "feminine", "n": "neuter"}.get(gender, "unknown")
     is_irregular = w.lower() in IRREGULAR_DECLENSION or w.lower() in GENITIVE_PL_EXCEPTIONS
