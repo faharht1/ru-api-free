@@ -4,11 +4,12 @@ from fastapi.staticfiles import StaticFiles
 
 from .conjugator import conjugate, search_verbs, list_verbs, get_exceptions, get_verb_exceptions, EXCEPTION_TYPES, VERBS
 from .dictionary import translate
+from .pluraliser import pluralise_with_info
 
 app = FastAPI(
     title="Russian Verb Conjugation API",
     description="Free API for conjugating Russian verbs in all tenses (present, past, future)",
-    version="1.2.0",
+    version="1.3.0",
 )
 
 app.add_middleware(
@@ -43,7 +44,7 @@ LANG_CODES = {
 def root():
     return {
         "name": "Russian Verb Conjugation API",
-        "version": "1.2.0",
+        "version": "1.3.0",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
         "base_url": "https://ru-api-free.onrender.com",
         "docs": "/docs",
@@ -97,6 +98,20 @@ def root():
                 "method": "GET",
                 "description": "Get exceptions for a specific verb",
                 "example_request": "/exceptions/бежать",
+            },
+            "pluralise": {
+                "url": "/pluralise?text={word}&source={lang}",
+                "method": "GET",
+                "description": "Translate a word to Russian and get its plural form",
+                "params": {
+                    "text": "Word to pluralise (required)",
+                    "source": "Source language code (default: auto)",
+                },
+                "example_requests": {
+                    "english_noun": "/pluralise?text=house",
+                    "german_noun": "/pluralise?text=Haus&source=de",
+                    "russian_noun": "/pluralise?text=дом",
+                },
             },
         },
         "code_examples": {
@@ -212,3 +227,35 @@ def translate_endpoint(
 
 def _looks_like_verb(word):
     return any(word.endswith(e) for e in ("ть", "ти", "чь", "сти", "зти"))
+
+
+@app.get("/pluralise")
+def pluralise_endpoint(
+    text: str = Query(None, description="Word to pluralise (e.g., house, дом)"),
+    english: str = Query(None, description="[deprecated] Use 'text' instead"),
+    source: str = Query("auto", description="Source language code (e.g., en, de, fr). Default: auto-detect"),
+):
+    inp = text or english
+    if not inp:
+        raise HTTPException(status_code=400, detail="Provide 'text' parameter")
+    inp = inp.strip()
+
+    is_cyrillic = bool(__import__("re").search(r"[а-яё]", inp))
+    if is_cyrillic:
+        result = pluralise_with_info(inp)
+        result["original"] = inp
+        result["source_lang"] = source
+        if result["plural"] is None:
+            result["note"] = "This is a verb, not a noun"
+        return result
+
+    translated = translate(inp, source=source, target="ru")
+    if not translated:
+        raise HTTPException(status_code=502, detail="Translation service unavailable")
+    result = pluralise_with_info(translated)
+    result["original"] = inp
+    result["source_lang"] = source
+    result["translated"] = translated
+    if result["plural"] is None:
+        result["note"] = "Translated word is a verb, not a noun"
+    return result

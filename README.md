@@ -91,7 +91,43 @@ GET /search?q={query}
 curl "https://ru-api-free.onrender.com/search?q=чит"
 ```
 
-### 5. Conjugation exceptions
+### 5. Pluralise (nouns)
+
+Translate any word to Russian and get its plural form. Handles 150+ irregular plurals.
+
+```
+GET /pluralise?text={word}&source=auto
+```
+
+| Param | Default | Description |
+|---|---|---|
+| `text` | — | Word to pluralise (required) |
+| `source` | `auto` | Source language code |
+
+```bash
+curl "https://ru-api-free.onrender.com/pluralise?text=house"
+curl "https://ru-api-free.onrender.com/pluralise?text=Haus&source=de"
+curl "https://ru-api-free.onrender.com/pluralise?text=дом"
+```
+
+```javascript
+const res = await fetch("https://ru-api-free.onrender.com/pluralise?text=book");
+const data = await res.json();
+console.log(data.singular, "→", data.plural);  // "книга → книги"
+```
+
+**Response:**
+```json
+{
+  "singular": "дом",
+  "plural": "дома",
+  "gender": "masculine",
+  "original": "house",
+  "translated": "дом"
+}
+```
+
+### 6. Conjugation exceptions
 
 ```
 GET /exceptions              # All exceptions
@@ -154,13 +190,16 @@ CORS is enabled for all origins — use it directly from any website.
 ## Python Library (no server needed)
 
 ```python
-from ru_api_free import conjugate, translate
+from ru_api_free import conjugate, translate, pluralise
 
 result, status = conjugate("читать")
 print(result["tenses"]["present"]["я"])  # "читаю"
 
 russian = translate("speak", source="auto", target="ru")
 print(russian)  # "говорить"
+
+info = pluralise("дом")
+print(info["singular"], "→", info["plural"])  # "дом → дома"
 ```
 
 ## License
