@@ -26,6 +26,10 @@ curl "https://ru-api-free.onrender.com/decline?text=book"
 
 # Decline an adjective (all genders × 6 cases)
 curl "https://ru-api-free.onrender.com/decline-adjective?text=new"
+
+# Get aspect pair (imperfective ↔ perfective)
+curl "https://ru-api-free.onrender.com/aspect-pair?text=speak"
+curl "https://ru-api-free.onrender.com/aspect-pair?text=читать"
 ```
 
 ```javascript
@@ -58,6 +62,7 @@ print(r.json()["tenses"]["present"]["я"])  # "говорю"
 | `GET /pluralise` | Pluralise a noun |
 | `GET /decline` | Decline a noun (6 cases × singular/plural) |
 | `GET /decline-adjective` | Decline an adjective (2 genders × 6 cases + plural) |
+| `GET /aspect-pair` | Get aspect pair (imperfective ↔ perfective) with both conjugated |
 | `GET /site` | Interactive web UI |
 
 ---
@@ -366,7 +371,53 @@ curl "https://ru-api-free.onrender.com/decline-adjective?text=маленький
 
 ---
 
-### 8. Exceptions
+### 8. Aspect Pair
+
+```
+GET /aspect-pair?text={verb}&source=auto
+```
+
+Enter any verb (in any language) and get its aspect pair — the imperfective ↔ perfective counterpart — with both verbs fully conjugated side by side.
+
+| Param | Default | Description |
+|---|---|---|
+| `text` | — | Verb to get aspect pair for **(required)** |
+| `source` | `auto` | Source language code |
+
+Covers 200+ verb pairs including prefixes (делать → сделать, читать → прочитать), suppletive pairs (говорить → сказать, брать → взять), and suffix pairs (прыгать → прыгнуть).
+
+```bash
+curl "https://ru-api-free.onrender.com/aspect-pair?text=speak"
+curl "https://ru-api-free.onrender.com/aspect-pair?text=читать"
+curl "https://ru-api-free.onrender.com/aspect-pair?text=kaufen&source=de"
+curl "https://ru-api-free.onrender.com/aspect-pair?text=сказать"
+```
+
+**Response:**
+```json
+{
+  "verb": "говорить",
+  "aspect": "imperfective",
+  "pair_type": "suppletive",
+  "counterpart": "сказать",
+  "counterpart_aspect": "perfective",
+  "main_verb": { "verb": "говорить", "aspect": "imperfective", "tenses": { ... } },
+  "counterpart_verb": { "verb": "сказать", "aspect": "perfective", "tenses": { ... } },
+  "note": "Completely different roots (говор- vs скаж-)",
+  "original": "speak",
+  "translated": "говорить",
+  "source_lang": "en"
+}
+```
+
+**Pair types:**
+- `prefix` — perfective formed by adding a prefix (делать → с-делать)
+- `suppletive` — different roots/ stems (говорить → сказать)
+- `likely_prefix` — inferred from existing data
+
+---
+
+### 9. Exceptions
 
 ```
 GET /exceptions
@@ -400,13 +451,13 @@ curl "https://ru-api-free.onrender.com/exceptions/гнать"
 
 ---
 
-### 9. Interactive Web UI
+### 10. Interactive Web UI
 
 ```
 GET /site
 ```
 
-Opens a full-featured web interface with tabs for Conjugate, Pluralise, Decline, and Decline Adj modes. Includes a language selector dropdown for source language.
+Opens a full-featured web interface with tabs for Conjugate, Pluralise, Decline, Decline Adj, and Aspect Pair modes. Includes a language selector dropdown for source language.
 
 ```
 https://ru-api-free.onrender.com/site
@@ -429,6 +480,7 @@ from ru_api_free import (
     pluralise, pluralise_with_info,
     decline, decline_with_info,
     decline_adjective, decline_adjective_with_info,
+    get_aspect_pair,
     get_exceptions, get_verb_exceptions, EXCEPTION_TYPES,
 )
 ```
@@ -492,6 +544,18 @@ print(adj["plural"]["prepositional"])    # новых
 adj2 = decline_adjective_with_info("хороший")
 print(adj2["type"])   # sibilant
 print(adj2["forms"]["feminine"]["genitive"])  # хорошей
+
+### Aspect Pair
+
+```python
+pair = get_aspect_pair("читать")
+print(pair["perfective"])  # прочитать
+print(pair["type"])        # prefix
+
+pair2 = get_aspect_pair("сказать")
+print(pair2["imperfective"])  # говорить
+print(pair2["type"])          # suppletive
+```
 ```
 
 ### Search & List
