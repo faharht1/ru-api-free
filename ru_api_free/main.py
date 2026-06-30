@@ -8,7 +8,7 @@ from .dictionary import translate
 app = FastAPI(
     title="Russian Verb Conjugation API",
     description="Free API for conjugating Russian verbs in all tenses (present, past, future)",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
@@ -43,7 +43,7 @@ LANG_CODES = {
 def root():
     return {
         "name": "Russian Verb Conjugation API",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
         "base_url": "https://ru-api-free.onrender.com",
         "docs": "/docs",
