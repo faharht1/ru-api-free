@@ -45,7 +45,7 @@ def root():
         "name": "Russian Verb Conjugation API",
         "version": "1.1.0",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
-        "base_url": "https://github.com/faharht1/ru-api-free",
+        "base_url": "https://ru-api-free.onrender.com",
         "docs": "/docs",
         "web_ui": "/site",
         "endpoints": {
@@ -107,37 +107,38 @@ async function conjugate(word) {
 }
 conjugate('speak').then(data => console.log(data));""",
             "curl": """# Conjugate a Russian verb
-curl "/conjugate?verb=читать"
+curl "https://ru-api-free.onrender.com/conjugate?verb=читать"
 
 # Translate from any language + conjugate
-curl "/translate?text=speak"
-curl "/translate?text=sprechen&source=de"
-curl "/translate?text=lire&source=fr"
+curl "https://ru-api-free.onrender.com/translate?text=speak"
+curl "https://ru-api-free.onrender.com/translate?text=sprechen&source=de"
+curl "https://ru-api-free.onrender.com/translate?text=lire&source=fr"
 
 # Translate without conjugating (noun)
-curl "/translate?text=house"
+curl "https://ru-api-free.onrender.com/translate?text=house"
 
 # Translate Russian to English
-curl "/translate?text=читать&source=ru&target=en"
+curl "https://ru-api-free.onrender.com/translate?text=читать&source=ru&target=en"
 
 # List all verbs
-curl "/verbs"
+curl "https://ru-api-free.onrender.com/verbs"
 
 # Search verbs
-curl "/search?q=чит\"""",
-            "python": """# pip install requests
-import requests
+curl "https://ru-api-free.onrender.com/search?q=чит\"""",
+            "python": """import requests
+
+API = "https://ru-api-free.onrender.com"
 
 # Translate + conjugate
-r = requests.get("http://localhost:8000/translate", params={"text": "speak", "source": "auto", "target": "ru"})
+r = requests.get(f"{API}/translate", params={"text": "speak", "source": "auto", "target": "ru"})
 print(r.json())
 
 # Just translate a noun (no conjugation)
-r = requests.get("http://localhost:8000/translate", params={"text": "house"})
-print(r.json()["translated"])  # "дом"
+r = requests.get(f"{API}/translate", params={"text": "house"})
+print(r.json()["translated"])
 
 # Direct conjugation
-r = requests.get("http://localhost:8000/conjugate", params={"verb": "говорить"})
+r = requests.get(f"{API}/conjugate", params={"verb": "говорить"})
 print(r.json())""",
         },
     }

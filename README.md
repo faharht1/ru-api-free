@@ -1,26 +1,39 @@
 # ru-api-free
 
-Free REST API for conjugating Russian verbs in all tenses (present, past, future). \
+Free REST API for conjugating Russian verbs in all tenses (present, past, future).
 Translate words from any language to Russian — if it's a verb, you get full conjugation.
 
-## Quick Start
+**Live API:** `https://ru-api-free.onrender.com`
 
-### Run the server
+---
+
+## Quick Start (no installation)
+
+Just use the hosted API directly:
 
 ```bash
-pip install ru-api-free
-ru-api-free
+curl "https://ru-api-free.onrender.com/translate?text=speak"
 ```
 
-Open **http://localhost:8000** for API docs, or **http://localhost:8000/site** for the web UI.
+```javascript
+// Use on your website
+const res = await fetch("https://ru-api-free.onrender.com/translate?text=speak");
+const data = await res.json();
+console.log(data.verb, data.tenses);
+```
+
+```python
+import requests
+
+r = requests.get("https://ru-api-free.onrender.com/translate", params={"text": "speak"})
+print(r.json()["tenses"]["present"]["я"])  # "говорю"
+```
 
 ---
 
 ## API Endpoints
 
-### 1. Translate + Conjugate (most useful)
-
-Auto-detect any language, translate to Russian, then conjugate if it's a verb.
+### 1. Translate + Conjugate
 
 ```
 GET /translate?text={word}&source=auto&target=ru
@@ -29,48 +42,26 @@ GET /translate?text={word}&source=auto&target=ru
 | Param | Default | Description |
 |---|---|---|
 | `text` | — | Word to translate (required) |
-| `source` | `auto` | Source language code (`en`, `de`, `fr`, `es`, `pl`, `uk`…) |
+| `source` | `auto` | Source language code |
 | `target` | `ru` | Target language code |
 
 **Examples:**
 
-```
-/translate?text=speak          # English → Russian + conjugate
-/translate?text=sprechen&source=de  # German → Russian + conjugate
-/translate?text=house          # English → Russian (noun, no conjugation)
-/translate?text=читать&source=ru&target=en  # Russian → English translation only
-```
-
-**JavaScript (use on your website):**
-
-```javascript
-async function conjugate(word) {
-  const res = await fetch(`/translate?text=${encodeURIComponent(word)}&source=auto&target=ru`);
-  return await res.json();
-}
-
-// Usage
-conjugate('speak').then(data => {
-  console.log(data.verb);        // "говорить"
-  console.log(data.tenses);      // { present: {...}, past: {...}, future: {...} }
-});
-```
-
-**Python:**
-
-```python
-import requests
-
-r = requests.get("http://localhost:8000/translate", params={"text": "speak"})
-data = r.json()
-print(data["verb"])             # "говорить"
-print(data["tenses"]["present"])  # {"я": "говорю", "ты": "говоришь", ...}
-```
-
-**cURL:**
-
 ```bash
-curl "http://localhost:8000/translate?text=speak"
+# English verb -> Russian + conjugation
+curl "https://ru-api-free.onrender.com/translate?text=speak"
+
+# German verb -> Russian + conjugation
+curl "https://ru-api-free.onrender.com/translate?text=sprechen&source=de"
+
+# French verb -> Russian + conjugation
+curl "https://ru-api-free.onrender.com/translate?text=lire&source=fr"
+
+# Noun -> just translation, no conjugation
+curl "https://ru-api-free.onrender.com/translate?text=house"
+
+# Russian -> English (translation only)
+curl "https://ru-api-free.onrender.com/translate?text=читать&source=ru&target=en"
 ```
 
 ### 2. Direct Conjugation (Russian verb only)
@@ -80,11 +71,8 @@ GET /conjugate?verb={verb}
 ```
 
 ```bash
-curl "http://localhost:8000/conjugate?verb=читать"
-```
-
-```javascript
-fetch("/conjugate?verb=говорить").then(r => r.json()).then(console.log);
+curl "https://ru-api-free.onrender.com/conjugate?verb=читать"
+curl "https://ru-api-free.onrender.com/conjugate?verb=говорить"
 ```
 
 ### 3. List all verbs
@@ -93,8 +81,6 @@ fetch("/conjugate?verb=говорить").then(r => r.json()).then(console.log);
 GET /verbs
 ```
 
-Returns all 190+ Russian verbs in the database with aspect and reflexive info.
-
 ### 4. Search verbs
 
 ```
@@ -102,7 +88,7 @@ GET /search?q={query}
 ```
 
 ```bash
-curl "http://localhost:8000/search?q=чит"
+curl "https://ru-api-free.onrender.com/search?q=чит"
 ```
 
 ### 5. Conjugation exceptions
@@ -115,8 +101,6 @@ GET /exceptions/{verb}       # Exceptions for one verb
 ---
 
 ## Response Format
-
-A conjugation response looks like:
 
 ```json
 {
@@ -157,24 +141,6 @@ A conjugation response looks like:
 
 ---
 
-## Python Library
-
-You can also use the library directly without running a server:
-
-```python
-from ru_api_free import conjugate, translate
-
-# Conjugate directly
-result, status = conjugate("читать")
-print(result["tenses"]["present"]["я"])  # "читаю"
-
-# Translate (no server needed)
-russian = translate("speak", source="auto", target="ru")
-print(russian)  # "говорить"
-```
-
----
-
 ## Self-Hosting
 
 ```bash
@@ -183,9 +149,20 @@ ru-api-free
 # or: uvicorn ru_api_free.main:app --host 0.0.0.0 --port 8000
 ```
 
-The API has CORS enabled for all origins — use it directly from any website.
+CORS is enabled for all origins — use it directly from any website.
+
+## Python Library (no server needed)
+
+```python
+from ru_api_free import conjugate, translate
+
+result, status = conjugate("читать")
+print(result["tenses"]["present"]["я"])  # "читаю"
+
+russian = translate("speak", source="auto", target="ru")
+print(russian)  # "говорить"
+```
 
 ## License
 
 MIT
-"# ru-api-free" 
