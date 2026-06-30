@@ -5,11 +5,12 @@ from fastapi.staticfiles import StaticFiles
 from .conjugator import conjugate, search_verbs, list_verbs, get_exceptions, get_verb_exceptions, EXCEPTION_TYPES, VERBS
 from .dictionary import translate
 from .pluraliser import pluralise_with_info
+from .declension import decline_with_info
 
 app = FastAPI(
     title="Russian Verb Conjugation API",
     description="Free API for conjugating Russian verbs in all tenses (present, past, future)",
-    version="1.3.0",
+    version="1.4.0",
 )
 
 app.add_middleware(
@@ -44,7 +45,7 @@ LANG_CODES = {
 def root():
     return {
         "name": "Russian Verb Conjugation API",
-        "version": "1.3.0",
+        "version": "1.4.0",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
         "base_url": "https://ru-api-free.onrender.com",
         "docs": "/docs",
@@ -113,6 +114,20 @@ def root():
                     "russian_noun": "/pluralise?text=дом",
                 },
             },
+            "decline": {
+                "url": "/decline?text={word}&source={lang}",
+                "method": "GET",
+                "description": "Translate a word to Russian and get all 6 noun cases (nominative, genitive, dative, accusative, instrumental, prepositional) in both singular and plural",
+                "params": {
+                    "text": "Word to decline (required)",
+                    "source": "Source language code (default: auto)",
+                },
+                "example_requests": {
+                    "english_noun": "/decline?text=house",
+                    "german_noun": "/decline?text=Haus&source=de",
+                    "russian_noun": "/decline?text=дом",
+                },
+            },
         },
         "code_examples": {
             "javascript_fetch": """// Use on your website
@@ -139,7 +154,13 @@ curl "https://ru-api-free.onrender.com/translate?text=читать&source=ru&tar
 curl "https://ru-api-free.onrender.com/verbs"
 
 # Search verbs
-curl "https://ru-api-free.onrender.com/search?q=чит\"""",
+curl "https://ru-api-free.onrender.com/search?q=чит"
+
+# Pluralise nouns
+curl "https://ru-api-free.onrender.com/pluralise?text=house"
+
+# Decline nouns (all cases)
+curl "https://ru-api-free.onrender.com/decline?text=house\"""",
             "python": """import requests
 
 API = "https://ru-api-free.onrender.com"
@@ -227,6 +248,38 @@ def translate_endpoint(
 
 def _looks_like_verb(word):
     return any(word.endswith(e) for e in ("ть", "ти", "чь", "сти", "зти"))
+
+
+@app.get("/decline")
+def decline_endpoint(
+    text: str = Query(None, description="Word to decline (e.g., house, дом)"),
+    english: str = Query(None, description="[deprecated] Use 'text' instead"),
+    source: str = Query("auto", description="Source language code (e.g., en, de, fr). Default: auto-detect"),
+):
+    inp = text or english
+    if not inp:
+        raise HTTPException(status_code=400, detail="Provide 'text' parameter")
+    inp = inp.strip()
+
+    is_cyrillic = bool(__import__("re").search(r"[а-яё]", inp))
+    if is_cyrillic:
+        result = decline_with_info(inp)
+        result["original"] = inp
+        result["source_lang"] = source
+        if result.get("error"):
+            result["note"] = result["message"]
+        return result
+
+    translated = translate(inp, source=source, target="ru")
+    if not translated:
+        raise HTTPException(status_code=502, detail="Translation service unavailable")
+    result = decline_with_info(translated)
+    result["original"] = inp
+    result["source_lang"] = source
+    result["translated"] = translated
+    if result.get("error"):
+        result["note"] = "Translated word is a verb, not a noun"
+    return result
 
 
 @app.get("/pluralise")

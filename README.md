@@ -127,7 +127,56 @@ console.log(data.singular, "→", data.plural);  // "книга → книги"
 }
 ```
 
-### 6. Conjugation exceptions
+### 6. Decline (noun cases)
+
+Translate any word to Russian and get all 6 noun cases in singular and plural (nominative, genitive, dative, accusative, instrumental, prepositional).
+
+```
+GET /decline?text={word}&source=auto
+```
+
+| Param | Default | Description |
+|---|---|---|
+| `text` | — | Word to decline (required) |
+| `source` | `auto` | Source language code |
+
+```bash
+curl "https://ru-api-free.onrender.com/decline?text=house"
+curl "https://ru-api-free.onrender.com/decline?text=дом"
+```
+
+```javascript
+const res = await fetch("https://ru-api-free.onrender.com/decline?text=book");
+const data = await res.json();
+console.log(data.singular.genitive);  // "книги"
+```
+
+**Response:**
+```json
+{
+  "word": "дом",
+  "gender": "masculine",
+  "declension": "first",
+  "singular": {
+    "nominative": "дом",
+    "genitive": "дома",
+    "dative": "дому",
+    "accusative": "дом",
+    "instrumental": "домом",
+    "prepositional": "доме"
+  },
+  "plural": {
+    "nominative": "дома",
+    "genitive": "домов",
+    "dative": "домам",
+    "accusative": "дома",
+    "instrumental": "домами",
+    "prepositional": "домах"
+  }
+}
+```
+
+### 7. Conjugation exceptions
 
 ```
 GET /exceptions              # All exceptions
@@ -190,7 +239,7 @@ CORS is enabled for all origins — use it directly from any website.
 ## Python Library (no server needed)
 
 ```python
-from ru_api_free import conjugate, translate, pluralise
+from ru_api_free import conjugate, translate, pluralise, decline
 
 result, status = conjugate("читать")
 print(result["tenses"]["present"]["я"])  # "читаю"
@@ -200,6 +249,9 @@ print(russian)  # "говорить"
 
 info = pluralise("дом")
 print(info["singular"], "→", info["plural"])  # "дом → дома"
+
+cases = decline("дом")
+print(cases["singular"]["genitive"])  # "дома"
 ```
 
 ## License
