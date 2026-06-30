@@ -52,7 +52,7 @@ td:last-child { font-weight: 500; }
 <div class="container">
   <h1>Russian Verb Conjugation</h1>
     <p class="subtitle" id="noteMsg" style="display:none;color:#fbbf24;font-size:0.8rem;margin-bottom:0.75rem;"></p>
-    <p class="subtitle">Enter a verb in any language to see Russian tenses</p>
+    <p class="subtitle">Enter a verb in any language to see Russian tenses &bull; <a href="/docs" style="color:#60a5fa">API docs</a></p>
   <div class="search-box">
     <input type="text" id="verbInput" placeholder="e.g. read, lesen, lire, читать, говорить..." autofocus>
     <button id="searchBtn">Conjugate</button>
@@ -68,7 +68,6 @@ td:last-child { font-weight: 500; }
       <div class="verb-meta" id="verbMeta"></div>
     </div>
     <div class="tenses" id="tensesContainer"></div>
-    <div class="suggestions" id="suggestionsContainer"></div>
   </div>
 </div>
 <script>
@@ -104,10 +103,6 @@ async function searchVerb() {
       const res = await fetch(`${API_BASE}/translate?text=${encodeURIComponent(query)}&source=auto&target=ru`);
       if (!res.ok) {
         const body = await res.json();
-        if (body.suggestions) {
-          showSuggestions(body.suggestions);
-          throw null;
-        }
         throw { status: res.status, msg: body.detail || 'Translation failed' };
       }
       data = await res.json();
@@ -120,16 +115,11 @@ async function searchVerb() {
   }
 }
 
-function showSuggestions(suggestions) {
-  const container = document.getElementById('suggestionsContainer');
-  container.innerHTML = '<p style="color:#94a3b8;font-size:0.85rem;width:100%;">Did you mean:</p>' +
-    suggestions.map(s => `<button onclick="trySuggestion('${s}')">${s}</button>`).join('');
-}
-
-function trySuggestion(word) {
-  input.value = word;
-  searchVerb();
-}
+const LANG_NAMES = {
+  en: "English", ru: "Russian", de: "German", fr: "French",
+  es: "Spanish", it: "Italian", pt: "Portuguese", nl: "Dutch",
+  pl: "Polish", uk: "Ukrainian", be: "Belarusian",
+};
 
 function renderResult(data) {
   resultCard.style.display = 'block';
@@ -145,16 +135,20 @@ function renderResult(data) {
   const isNonVerb = data.is_verb === false;
 
   const verbName = data.verb || data.translated || data.original || '';
-  const sourceInfo = data.source_lang
-    ? `<span style="color:#94a3b8;font-size:0.8rem;font-weight:400;margin-left:0.5rem">${data.original} ${data.source_lang !== 'auto' ? '(' + data.source_lang + ')' : ''}</span>`
-    : '';
-  const translatedInfo = data.translated && data.translated !== verbName
-    ? `<span style="color:#60a5fa;font-size:0.8rem;font-weight:400;margin-left:0.5rem">→ ${data.translated}</span>`
-    : '';
+  const srcLabel = LANG_NAMES[data.source_lang] || data.source_lang || '';
+  const headerParts = [];
+  if (data.original && data.original !== data.verb) {
+    headerParts.push(`<span style="color:#94a3b8;font-size:0.85rem;font-weight:400">${data.original}</span>`);
+  }
+  if (srcLabel && data.source_lang) {
+    headerParts.push(`<span style="color:#64748b;font-size:0.75rem">${srcLabel}</span>`);
+  }
+  if (data.translated && data.translated !== data.verb) {
+    headerParts.push(`<span style="color:#60a5fa;font-size:0.85rem">→ ${data.translated}</span>`);
+  }
   document.getElementById('verbTitle').innerHTML = `
-    ${verbName}
-    ${translatedInfo}
-    ${sourceInfo}
+    <span style="font-size:1.4rem">${verbName}</span>
+    ${headerParts.length ? '<div style="margin-top:0.3rem">' + headerParts.join(' ') + '</div>' : ''}
   `;
 
   const meta = document.getElementById('verbMeta');
@@ -162,7 +156,7 @@ function renderResult(data) {
   if (isNonVerb) {
     meta.innerHTML = '<span class="badge" style="background:#1e5f3b;color:#a5fdc4">translation</span>';
     const container = document.getElementById('tensesContainer');
-    container.innerHTML = '<div style="padding:1rem 0;color:#94a3b8;text-align:center">Not a verb — translation shown above</div>';
+    container.innerHTML = '<div style="padding:1.5rem 0;color:#94a3b8;text-align:center;font-size:0.9rem">Not a verb — showing translation only.<br>Try a verb like <span style="color:#60a5fa;cursor:pointer" onclick="input.value=\'speak\';searchVerb()">speak</span>, <span style="color:#60a5fa;cursor:pointer" onclick="input.value=\'lesen\';searchVerb()">lesen</span>, <span style="color:#60a5fa;cursor:pointer" onclick="input.value=\'читать\';searchVerb()">читать</span></div>';
     resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
@@ -221,6 +215,16 @@ function renderResult(data) {
   resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+</script>
+<div style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #334155;font-size:0.8rem;color:#64748b;text-align:center">
+  <a href="/docs" style="color:#60a5fa">API Documentation</a> &bull;
+  <a href="https://github.com/faharht1/ru-api-free" style="color:#60a5fa">GitHub</a>
+  <br><br>
+  <span style="color:#94a3b8">Try the API:</span>
+  <pre style="background:#1e293b;padding:0.75rem;border-radius:8px;margin-top:0.5rem;text-align:left;overflow-x:auto;font-size:0.75rem;color:#e2e8f0">curl "https://ru-api-free.onrender.com/translate?text=speak"</pre>
+</div>
+
+<script>
 function showError(msg) {
   errorMsg.textContent = msg;
   errorMsg.style.display = 'block';
