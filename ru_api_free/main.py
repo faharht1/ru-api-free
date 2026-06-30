@@ -6,11 +6,12 @@ from .conjugator import conjugate, search_verbs, list_verbs, get_exceptions, get
 from .dictionary import translate
 from .pluraliser import pluralise_with_info
 from .declension import decline_with_info
+from .adjectives import decline_adjective_with_info
 
 app = FastAPI(
     title="Russian Verb Conjugation API",
     description="Free API for conjugating Russian verbs in all tenses (present, past, future)",
-    version="1.4.0",
+    version="1.5.0",
 )
 
 app.add_middleware(
@@ -45,7 +46,7 @@ LANG_CODES = {
 def root():
     return {
         "name": "Russian Verb Conjugation API",
-        "version": "1.4.0",
+        "version": "1.5.0",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
         "base_url": "https://ru-api-free.onrender.com",
         "docs": "/docs",
@@ -128,6 +129,21 @@ def root():
                     "russian_noun": "/decline?text=дом",
                 },
             },
+            "decline_adjective": {
+                "url": "/decline-adjective?text={adj}&source={lang}",
+                "method": "GET",
+                "description": "Decline a Russian adjective in all genders and cases. Enter the masculine nominative form (e.g., новый, синий, хороший). Supports auto-translate from any language.",
+                "params": {
+                    "text": "Adjective to decline (required)",
+                    "source": "Source language code (default: auto)",
+                    "animate": "If true, accusative = genitive for masculine/plural (default: false)",
+                },
+                "example_requests": {
+                    "english": "/decline-adjective?text=new",
+                    "russian": "/decline-adjective?text=новый",
+                    "german": "/decline-adjective?text=neu&source=de",
+                },
+            },
         },
         "code_examples": {
             "javascript_fetch": """// Use on your website
@@ -160,7 +176,10 @@ curl "https://ru-api-free.onrender.com/search?q=чит"
 curl "https://ru-api-free.onrender.com/pluralise?text=house"
 
 # Decline nouns (all cases)
-curl "https://ru-api-free.onrender.com/decline?text=house\"""",
+curl "https://ru-api-free.onrender.com/decline?text=house"
+
+# Decline adjectives (all genders and cases)
+curl "https://ru-api-free.onrender.com/decline-adjective?text=new\"""",
             "python": """import requests
 
 API = "https://ru-api-free.onrender.com"
@@ -279,6 +298,39 @@ def decline_endpoint(
     result["translated"] = translated
     if result.get("error"):
         result["note"] = "Translated word is a verb, not a noun"
+    return result
+
+
+@app.get("/decline-adjective")
+def decline_adjective_endpoint(
+    text: str = Query(None, description="Adjective to decline (e.g., new, новый)"),
+    english: str = Query(None, description="[deprecated] Use 'text' instead"),
+    source: str = Query("auto", description="Source language code (e.g., en, de, fr). Default: auto-detect"),
+    animate: bool = Query(False, description="If true, accusative = genitive for masculine and plural"),
+):
+    inp = text or english
+    if not inp:
+        raise HTTPException(status_code=400, detail="Provide 'text' parameter")
+    inp = inp.strip()
+
+    is_cyrillic = bool(__import__("re").search(r"[а-яё]", inp))
+    if is_cyrillic:
+        result = decline_adjective_with_info(inp, animate=animate)
+        result["original"] = inp
+        result["source_lang"] = source
+        if result.get("error"):
+            result["note"] = result["message"]
+        return result
+
+    translated = translate(inp, source=source, target="ru")
+    if not translated:
+        raise HTTPException(status_code=502, detail="Translation service unavailable")
+    result = decline_adjective_with_info(translated, animate=animate)
+    result["original"] = inp
+    result["source_lang"] = source
+    result["translated"] = translated
+    if result.get("error"):
+        result["note"] = result["message"]
     return result
 
 

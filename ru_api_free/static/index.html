@@ -72,6 +72,7 @@ td:last-child { font-weight: 500; }
     <button class="tab active" data-mode="conjugate" onclick="setMode('conjugate')">Conjugate</button>
     <button class="tab" data-mode="pluralise" onclick="setMode('pluralise')">Pluralise</button>
     <button class="tab" data-mode="decline" onclick="setMode('decline')">Decline</button>
+    <button class="tab" data-mode="adjective" onclick="setMode('adjective')">Decline Adj</button>
   </div>
   <div class="search-box">
     <select id="langSelect" style="padding:0.75rem 0.5rem;border:1px solid #334155;border-radius:8px;font-size:0.85rem;background:#1e293b;color:#e2e8f0;outline:none;cursor:pointer">
@@ -126,9 +127,12 @@ function setMode(mode) {
   } else if (mode === 'pluralise') {
     input.placeholder = 'e.g. house, Haus, maison, дом, книга...';
     hintArea.innerHTML = 'Try: <span>house</span> <span>book</span> <span>Haus</span> <span>maison</span> <span>дом</span> <span>книга</span>';
-  } else {
+  } else if (mode === 'decline') {
     input.placeholder = 'e.g. house, Haus, maison, дом, книга...';
     hintArea.innerHTML = 'Try: <span>house</span> <span>book</span> <span>Haus</span> <span>мать</span> <span>время</span> <span>окно</span>';
+  } else {
+    input.placeholder = 'e.g. new, neu, nouveau, новый, синий...';
+    hintArea.innerHTML = 'Try: <span>new</span> <span>old</span> <span>big</span> <span>good</span> <span>новый</span> <span>хороший</span>';
   }
 }
 
@@ -164,11 +168,16 @@ async function searchVerb() {
       if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
       data = await res.json();
       renderPlural(data);
-    } else {
+    } else if (MODE === 'decline') {
       const res = await fetch(`${API_BASE}/decline?text=${encodeURIComponent(query)}&source=${src()}`);
       if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
       data = await res.json();
       renderDecline(data);
+    } else {
+      const res = await fetch(`${API_BASE}/decline-adjective?text=${encodeURIComponent(query)}&source=${src()}`);
+      if (!res.ok) { const body = await res.json(); throw { status: res.status, msg: body.detail || 'Error' }; }
+      data = await res.json();
+      renderAdjective(data);
     }
   } catch (err) {
     if (err) showError(err.msg || 'An error occurred');
@@ -330,10 +339,58 @@ function renderConjugate(data) {
   <span style="color:#94a3b8">Try the API:</span>
   <pre style="background:#1e293b;padding:0.75rem;border-radius:8px;margin-top:0.5rem;text-align:left;overflow-x:auto;font-size:0.75rem;color:#e2e8f0">curl "https://ru-api-free.onrender.com/translate?text=speak"
 curl "https://ru-api-free.onrender.com/pluralise?text=house"
-curl "https://ru-api-free.onrender.com/decline?text=house"</pre>
+curl "https://ru-api-free.onrender.com/decline?text=house"
+curl "https://ru-api-free.onrender.com/decline-adjective?text=new"</pre>
 </div>
 
 <script>
+function renderAdjective(data) {
+  resultCard.style.display = 'block';
+  document.getElementById('noteMsg').style.display = 'none';
+
+  const name = data.translated || data.adjective || data.original || '';
+  const srcLabel = LANG_NAMES[data.source_lang] || data.source_lang || '';
+  const headerParts = [];
+  if (data.original && data.original !== data.adjective) {
+    headerParts.push(`<span style="color:#94a3b8;font-size:0.85rem">${data.original}</span>`);
+  }
+  if (srcLabel && data.source_lang) {
+    headerParts.push(`<span style="color:#64748b;font-size:0.75rem">${srcLabel}</span>`);
+  }
+
+  document.getElementById('verbTitle').innerHTML = `
+    <span style="font-size:1.4rem">${name}</span>
+    ${headerParts.length ? '<div style="margin-top:0.3rem">' + headerParts.join(' ') + '</div>' : ''}
+  `;
+
+  const meta = document.getElementById('verbMeta');
+  if (data.note) {
+    meta.innerHTML = `<span class="badge" style="background:#5f3b1e;color:#fdc4a5">${data.note}</span>`;
+    document.getElementById('tensesContainer').innerHTML = `<div style="padding:1.5rem 0;color:#94a3b8;text-align:center;font-size:0.9rem">${data.note}</div>`;
+    return;
+  }
+
+  meta.innerHTML = `
+    <span class="badge" style="background:#1e3a5f;color:#93c5fd">${data.type || ''}</span>
+  `;
+
+  const forms = data.forms || {};
+  const cases = ['nominative', 'genitive', 'dative', 'accusative', 'instrumental', 'prepositional'];
+  const short = { nominative: 'Nom', genitive: 'Gen', dative: 'Dat', accusative: 'Acc', instrumental: 'Ins', prepositional: 'Pre' };
+
+  let html = '';
+  for (const [gender, gendForms] of Object.entries(forms)) {
+    html += `<div class="${gender === 'plural' ? 'case-pl' : 'case-sg'}"><div class="case-header">${gender}</div><table class="case-table">`;
+    for (const c of cases) {
+      html += `<tr><td>${short[c]}</td><td>${gendForms[c] || '—'}</td></tr>`;
+    }
+    html += '</table></div>';
+  }
+
+  document.getElementById('tensesContainer').innerHTML = html;
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderDecline(data) {
   resultCard.style.display = 'block';
   document.getElementById('noteMsg').style.display = 'none';
