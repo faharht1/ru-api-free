@@ -45,7 +45,7 @@ def root():
         "name": "Russian Verb Conjugation API",
         "version": "1.1.0",
         "description": "Free API for conjugating Russian verbs. Translate from any language + conjugate.",
-        "base_url": "https://your-server.com",
+        "base_url": "https://github.com/faharht1/ru-api-free",
         "docs": "/docs",
         "web_ui": "/site",
         "endpoints": {

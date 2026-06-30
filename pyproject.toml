@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 authors = [
-    {name = "Radoslaw", email = "faharht@email.com"},
+    {name = "Radoslaw", email = "faharht1@users.noreply.github.com"},
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -30,8 +30,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/faharht/ru-api-free"
-Source = "https://github.com/faharht/ru-api-free"
+Homepage = "https://github.com/faharht1/ru-api-free"
+Source = "https://github.com/faharht1/ru-api-free"
 
 [project.scripts]
 ru-api-free = "ru_api_free.__main__:main"
